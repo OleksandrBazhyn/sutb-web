@@ -20,6 +20,23 @@ async function jsonFetch<T>(url: string, options?: RequestInit): Promise<T> {
   return resp.json() as Promise<T>;
 }
 
+// ======================= EXPORT DB =======================
+// Завантаження JSON-файлу БД
+export async function exportDatabase(): Promise<Blob> {
+  const resp = await fetch(`${BASE_URL}/database/export`);
+  return resp.blob();
+}
+
+// ======================= IMPORT DB =======================
+// Відправка JSON-об'єкта на сервер для імпорту
+export async function importDatabase(json: unknown): Promise<void> {
+  await jsonFetch(`${BASE_URL}/database/load-file`, {
+    method: "POST",
+    body: JSON.stringify(json),
+  });
+}
+
+// ======================= TABLES =======================
 
 export async function getTables(): Promise<string[]> {
   return jsonFetch<string[]>(`${BASE_URL}/tables`);
@@ -45,6 +62,8 @@ export async function createTable(
   });
 }
 
+// ======================= RECORDS =======================
+
 export async function getTableRecords(name: string): Promise<TableRecord[]> {
   return jsonFetch<TableRecord[]>(`${BASE_URL}/tables/${encodeURIComponent(name)}/records`);
 }
@@ -59,6 +78,8 @@ export async function addRecord(
   });
 }
 
+// ======================= SORT =======================
+
 export async function sortTable(
   tableName: string,
   fieldName: string,
@@ -69,6 +90,8 @@ export async function sortTable(
     body: JSON.stringify({ fieldName, asc }),
   });
 }
+
+// ======================= FILTER (individual op) =======================
 
 export async function filterTable(
   tableName: string,
@@ -81,6 +104,8 @@ export async function filterTable(
     body: JSON.stringify({ fieldName, operator, value }),
   });
 }
+
+// ======================= SAVE/LOAD (old API) =======================
 
 export async function saveDatabase(): Promise<void> {
   await jsonFetch(`${BASE_URL}/database/save`, { method: "POST" });

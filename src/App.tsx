@@ -9,6 +9,8 @@ import {
   filterTable,
   saveDatabase,
   loadDatabase,
+  importDatabase,
+  exportDatabase
 } from "./api";
 import type { FieldSchema, TableRecord } from "./types";
 import "./App.css";
@@ -141,9 +143,12 @@ function App() {
           isRequired: f.isRequired,
           maxLength: f.maxLength ? Number(f.maxLength) : undefined,
           enumValues:
-            f.type === "enum" && f.enumValues.trim().length > 0
-              ? f.enumValues.split(",").map(v => v.trim())
-              : undefined,
+          f.type === "enum" && f.enumValues.trim().length > 0
+            ? f.enumValues
+                .split("\n")
+                .map(v => v.trim())
+                .filter(v => v.length > 0)
+            : undefined,
         }));
 
       if (fieldsPayload.length === 0) {
@@ -263,10 +268,45 @@ function App() {
         <h1>SUTB – Web Client</h1>
         <div className="db-buttons">
           <button onClick={handleSaveDb} disabled={loading}>
-            Зберегти БД
+            Зберегти на сервер
           </button>
-          <button onClick={handleLoadDb} disabled={loading}>
-            Завантажити БД
+
+          <button
+            onClick={async () => {
+              const blob = await exportDatabase();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "sutb-database.json";
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Завантажити БД (JSON)
+          </button>
+
+          <button className="upload-btn">
+            Імпорт БД
+            <input
+              type="file"
+              accept="application/json"
+              onChange={async e => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                const text = await file.text();
+
+                try {
+                  const json = JSON.parse(text);
+                  await importDatabase(json);
+                  await reloadTables();
+                  alert("БД імпортовано");
+                } catch {
+                  alert("Некоректний JSON-файл");
+                }
+              }}
+              className="upload-input"
+            />
           </button>
         </div>
       </header>
@@ -338,9 +378,11 @@ function App() {
                     onChange={e => handleFieldChange(idx, { maxLength: e.target.value })}
                   />
                   {f.type === "enum" && (
-                    <input
-                      placeholder="enum1, enum2, ..."
+                    <textarea
+                      placeholder="кожне значення з нового рядка"
                       value={f.enumValues}
+                      rows={3}
+                      style={{ resize: "vertical" }}
                       onChange={e => handleFieldChange(idx, { enumValues: e.target.value })}
                     />
                   )}
