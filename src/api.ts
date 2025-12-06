@@ -1,0 +1,95 @@
+import type { FieldSchema, TableRecord } from "./types";
+
+const BASE_URL = "http://localhost:3000";
+
+async function jsonFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const resp = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  if (!resp.ok) {
+    let msg = `HTTP ${resp.status}`;
+    try {
+      const data = await resp.json();
+      if (data?.error) msg = data.error;
+    } catch {
+      // ignore
+    }
+    throw new Error(msg);
+  }
+  return resp.json() as Promise<T>;
+}
+
+
+export async function getTables(): Promise<string[]> {
+  return jsonFetch<string[]>(`${BASE_URL}/tables`);
+}
+
+export async function getTableSchema(name: string): Promise<FieldSchema[]> {
+  return jsonFetch<FieldSchema[]>(`${BASE_URL}/tables/${encodeURIComponent(name)}/schema`);
+}
+
+export async function createTable(
+  name: string,
+  fields: {
+    name: string;
+    type: string;
+    isRequired: boolean;
+    maxLength?: number;
+    enumValues?: string[];
+  }[],
+): Promise<void> {
+  await jsonFetch(`${BASE_URL}/tables`, {
+    method: "POST",
+    body: JSON.stringify({ name, fields }),
+  });
+}
+
+export async function getTableRecords(name: string): Promise<TableRecord[]> {
+  return jsonFetch<TableRecord[]>(`${BASE_URL}/tables/${encodeURIComponent(name)}/records`);
+}
+
+export async function addRecord(
+  tableName: string,
+  data: Record<string, unknown>,
+): Promise<void> {
+  await jsonFetch(`${BASE_URL}/tables/${encodeURIComponent(tableName)}/records`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function sortTable(
+  tableName: string,
+  fieldName: string,
+  asc: boolean,
+): Promise<void> {
+  await jsonFetch(`${BASE_URL}/tables/${encodeURIComponent(tableName)}/sort`, {
+    method: "POST",
+    body: JSON.stringify({ fieldName, asc }),
+  });
+}
+
+export async function filterTable(
+  tableName: string,
+  fieldName: string,
+  operator: string,
+  value: unknown,
+): Promise<TableRecord[]> {
+  return jsonFetch<TableRecord[]>(`${BASE_URL}/tables/${encodeURIComponent(tableName)}/filter`, {
+    method: "POST",
+    body: JSON.stringify({ fieldName, operator, value }),
+  });
+}
+
+export async function saveDatabase(): Promise<void> {
+  await jsonFetch(`${BASE_URL}/database/save`, { method: "POST" });
+}
+
+export async function loadDatabase(): Promise<string[]> {
+  const result = await jsonFetch<{ success: boolean; tables: string[] }>(
+    `${BASE_URL}/database/load`,
+    { method: "POST" },
+  );
+  return result.tables;
+}
