@@ -36,6 +36,48 @@ export async function importDatabase(json: unknown): Promise<void> {
   });
 }
 
+export function normalizeDatabaseFormat(json: any) {
+  if (!json || typeof json !== "object") return json;
+
+  // Гарантуємо наявність імені БД
+  if (!json.name) json.name = "ImportedDB";
+
+  if (!Array.isArray(json.tables)) return json;
+
+  json.tables = json.tables.map((table: any) => {
+    // Гарантуємо nextId
+    let maxId = 0;
+
+    table.records = (table.records || []).map((rec: any) => {
+      // Визначаємо maxId
+      if (typeof rec.id === "number" && rec.id > maxId) {
+        maxId = rec.id;
+      }
+
+      // Якщо data уже є — все ок
+      if (rec.data) return rec;
+
+      // Якщо старий формат cells → конвертуємо
+      if (Array.isArray(rec.cells)) {
+        const data: Record<string, any> = {};
+        rec.cells.forEach((cell: any) => {
+          data[cell.field] = cell.value;
+        });
+
+        return { id: rec.id, data };
+      }
+
+      return rec;
+    });
+
+    table.nextId = maxId + 1;
+
+    return table;
+  });
+
+  return json;
+}
+
 // ======================= TABLES =======================
 
 export async function getTables(): Promise<string[]> {

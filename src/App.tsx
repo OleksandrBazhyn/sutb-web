@@ -10,7 +10,8 @@ import {
   saveDatabase,
   loadDatabase,
   importDatabase,
-  exportDatabase
+  exportDatabase,
+  normalizeDatabaseFormat
 } from "./api";
 import type { FieldSchema, TableRecord } from "./types";
 import "./App.css";
@@ -298,7 +299,8 @@ function App() {
 
                 try {
                   const json = JSON.parse(text);
-                  await importDatabase(json);
+                  const normalized = normalizeDatabaseFormat(json);
+                  await importDatabase(normalized);
                   await reloadTables();
                   alert("БД імпортовано");
                 } catch {
