@@ -23,7 +23,7 @@ type NewFieldState = {
 
 const FIELD_TYPES = ["string", "integer", "real", "char", "email", "enum"];
 
-const FILTER_OPERATORS = ["=", "!=", ">", ">=", "<", "<="];
+const FILTER_OPERATORS = ["=", "!=", ">", ">=", "<", "<=", "LIKE"];
 
 function App() {
   const [tables, setTables] = useState<string[]>([]);
